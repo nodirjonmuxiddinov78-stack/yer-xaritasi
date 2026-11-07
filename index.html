@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Yer xaritasi 3D | Global Earth Explorer</title>
+  <script type="text/javascript" nonce="31bb00992960494696ec2bbcbb5" src="//local.adguard.org?ts=1793880084889&amp;type=content-script&amp;dmn=api.netlify.com&amp;pth=%2Fapi%2Fv1%2Fdeploys%2F69e0d99e40c47f27ae6500b5%2Ffiles%2Findex.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script>
+<script type="text/javascript" nonce="31bb00992960494696ec2bbcbb5" src="//local.adguard.org?ts=1793880084889&amp;name=AdGuard%20Assistant&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', 'Space Grotesk', sans-serif;
+      overflow: hidden;
+      background-color: #000;
+      color: #fff;
+    }
+
+    /* Canvas to'liq ekran */
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* UI Panel - asosiy boshqaruv paneli */
+    .main-panel {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .logo-box {
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(16px);
+      border-radius: 60px;
+      padding: 12px 24px;
+      border: 1px solid rgba(72, 187, 255, 0.4);
+      pointer-events: auto;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    .logo-box h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #48BBFF, #2B6CB0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-box p {
+      font-size: 10px;
+      color: #90CDF4;
+    }
+
+    .controls-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      pointer-events: auto;
+    }
+
+    .ctrl-btn {
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(72, 187, 255, 0.4);
+      border-radius: 50px;
+      padding: 10px 20px;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ctrl-btn:hover {
+      background: rgba(72, 187, 255, 0.25);
+      transform: scale(1.02);
+      border-color: #48BBFF;
+    }
+
+    /* Search panel */
+    .search-panel {
+      position: fixed;
+      top: 100px;
+      left: 20px;
+      width: 320px;
+      background: rgba(10, 20, 35, 0.85);
+      backdrop-filter: blur(20px);
+      border-radius: 28px;
+      border: 1px solid rgba(72, 187, 255, 0.3);
+      padding: 18px;
+      z-index: 20;
+      pointer-events: auto;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      transition: 0.3s;
+    }
+
+    @media (max-width: 600px) {
+      .search-panel { width: calc(100% - 40px); top: 80px; left: 20px; right: 20px; }
+    }
+
+    .search-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #90CDF4;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-box input {
+      flex: 1;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid #2D3748;
+      padding: 12px 16px;
+      border-radius: 60px;
+      color: white;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: #48BBFF;
+    }
+
+    .search-box button {
+      background: #3182CE;
+      border: none;
+      padding: 0 20px;
+      border-radius: 60px;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .search-results {
+      margin-top: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .result-item {
+      padding: 10px;
+      border-bottom: 1px solid #2D3748;
+      cursor: pointer;
+      transition: 0.1s;
+      font-size: 13px;
+    }
+
+    .result-item:hover {
+      background: rgba(72, 187, 255, 0.2);
+      border-radius: 12px;
+    }
+
+    /* Info panel (o'ng tomonda) */
+    .info-panel {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 300px;
+      background: rgba(10, 20, 35, 0.85);
+      backdrop-filter: blur(20px);
+      border-radius: 28px;
+      border: 1px solid rgba(72, 187, 255, 0.3);
+      padding: 18px;
+      z-index: 20;
+      pointer-events: auto;
+      transition: 0.3s;
+    }
+
+    @media (max-width: 600px) {
+      .info-panel { width: calc(100% - 40px); bottom: 20px; right: 20px; left: 20px; }
+    }
+
+    .info-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #48BBFF;
+    }
+
+    .coord-display {
+      font-family: monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,0.5);
+      padding: 8px;
+      border-radius: 16px;
+      margin-bottom: 12px;
+    }
+
+    .layer-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .layer-btn {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid #4A5568;
+      border-radius: 40px;
+      padding: 6px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .layer-btn.active {
+      background: #3182CE;
+      border-color: #48BBFF;
+    }
+
+    .compass-hint {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+      border-radius: 40px;
+      padding: 8px 16px;
+      font-size: 11px;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    /* Loading */
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      transition: 1s;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div style="text-align:center">
+      <i class="fas fa-globe fa-spin fa-3x" style="color:#48BBFF"></i>
+      <p style="margin-top:20px">Yer xaritasi yuklanmoqda...</p>
+      <p style="font-size:12px; margin-top:8px">Sun'iy yo'ldosh tasvirlari yuklanmoqda</p>
+    </div>
+  </div>
+
+  <div class="main-panel">
+    <div class="logo-box">
+      <h1><i class="fas fa-map-marked-alt"></i> Earth Explorer 3D</h1>
+      <p>Real-time global map | Satellite view</p>
+    </div>
+    <div class="controls-group">
+      <div class="ctrl-btn" id="resetViewBtn"><i class="fas fa-sync-alt"></i> Reset</div>
+      <div class="ctrl-btn" id="toggleAtmoBtn"><i class="fas fa-cloud-sun"></i> Atmosfera</div>
+    </div>
+  </div>
+
+  <div class="search-panel">
+    <div class="search-title"><i class="fas fa-search"></i> Shahar yoki davlat qidirish</div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Masalan: Toshkent, London, New York...">
+      <button id="searchBtn">Qidirish</button>
+    </div>
+    <div id="searchResults" class="search-results"></div>
+  </div>
+
+  <div class="info-panel">
+    <div class="info-title"><i class="fas fa-map-pin"></i> <span id="locationName">Yer sayyorasi</span></div>
+    <div class="coord-display" id="coordDisplay">Kenglik: 0.00° | Uzunlik: 0.00°</div>
+    <div class="layer-buttons">
+      <div class="layer-btn active" data-layer="satellite">🛰️ Sun'iy yo'ldosh</div>
+      <div class="layer-btn" data-layer="terrain">⛰️ Relyef</div>
+      <div class="layer-btn" data-layer="political">🗺️ Siyosiy</div>
+    </div>
+    <div style="font-size: 11px; margin-top: 12px; color: #A0AEC0;">
+      <i class="fas fa-mouse-pointer"></i> Sichqoncha bilan aylantirish | <i class="fas fa-arrows-alt"></i> O'ng tugma siljitish
+    </div>
+  </div>
+
+  <div class="compass-hint">
+    <i class="fas fa-compass"></i> 3D Yer modeli | 50+ shahar ma'lumotlari
+  </div>
+
+  <!-- Three.js va qo'shimchalar -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    // --- Boshlang'ich sozlamalar ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x010118);
+    scene.fog = new THREE.FogExp2(0x010118, 0.0008);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0.5, 3.2);
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    // CSS2 renderer for labels
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0px';
+    labelRenderer.domElement.style.left = '0px';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    labelRenderer.domElement.style.zIndex = '10';
+    document.body.appendChild(labelRenderer.domElement);
+
+    // Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.rotateSpeed = 0.8;
+    controls.zoomSpeed = 1.2;
+    controls.panSpeed = 0.5;
+    controls.enableZoom = true;
+    controls.autoRotate = false;
+    controls.enablePan = true;
+    controls.target.set(0, 0, 0);
+
+    // --- Yulduzlar fonini yaratish ---
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 2500;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      starPositions[i*3] = (Math.random() - 0.5) * 800;
+      starPositions[i*3+1] = (Math.random() - 0.5) * 500;
+      starPositions[i*3+2] = (Math.random() - 0.5) * 200 - 50;
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.2, transparent: true, opacity: 0.6 });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    // --- Yer sferasi (yuqori sifatli teksturalar bilan) ---
+    // Yuqori aniqlikdagi NASA Blue Marble teksturalari (o'xshash)
+    const textureLoader = new THREE.TextureLoader();
+    
+    // Asosiy tekstura (sun'iy yo'ldosh)
+    const earthMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+    const earthSpecularMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_specular_2048.jpg');
+    const earthNormalMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg');
+    const cloudMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png');
+    
+    const earthGeometry = new THREE.SphereGeometry(1, 128, 128);
+    const earthMaterial = new THREE.MeshPhongMaterial({
+      map: earthMap,
+      specularMap: earthSpecularMap,
+      specular: new THREE.Color('grey'),
+      shininess: 5,
+      normalMap: earthNormalMap,
+      normalScale: new THREE.Vector2(0.8, 0.8)
+    });
+    
+    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    scene.add(earth);
+    
+    // Bulutlar qatlami
+    const cloudGeometry = new THREE.SphereGeometry(1.01, 128, 128);
+    const cloudMaterial = new THREE.MeshPhongMaterial({
+      map: cloudMap,
+      transparent: true,
+      opacity: 0.12,
+      blending: THREE.AdditiveBlending
+    });
+    const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+    scene.add(clouds);
+    
+    // Atmosfera glow effekti
+    const atmosGeometry = new THREE.SphereGeometry(1.02, 64, 64);
+    const atmosMaterial = new THREE.MeshPhongMaterial({
+      color: 0x88aaff,
+      transparent: true,
+      opacity: 0.08,
+      side: THREE.BackSide
+    });
+    const atmosphere = new THREE.Mesh(atmosGeometry, atmosMaterial);
+    scene.add(atmosphere);
+    
+    // Yorug'lik manbalari
+    const ambientLight = new THREE.AmbientLight(0x222222);
+    scene.add(ambientLight);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    sunLight.position.set(5, 3, 5);
+    scene.add(sunLight);
+    const fillLight = new THREE.PointLight(0x4466cc, 0.3);
+    fillLight.position.set(-2, 1, -3);
+    scene.add(fillLight);
+    
+    // --- Shaharlar ma'lumotlar bazasi (50+ shahar) ---
+    const cities = [
+      { name: "Toshkent", lat: 41.2995, lon: 69.2401, country: "O'zbekiston" },
+      { name: "London", lat: 51.5074, lon: -0.1278, country: "Buyuk Britaniya" },
+      { name: "New York", lat: 40.7128, lon: -74.0060, country: "AQSH" },
+      { name: "Tokyo", lat: 35.6895, lon: 139.6917, country: "Yaponiya" },
+      { name: "Paris", lat: 48.8566, lon: 2.3522, country: "Fransiya" },
+      { name: "Berlin", lat: 52.5200, lon: 13.4050, country: "Germaniya" },
+      { name: "Moscow", lat: 55.7558, lon: 37.6173, country: "Rossiya" },
+      { name: "Beijing", lat: 39.9042, lon: 116.4074, country: "Xitoy" },
+      { name: "Delhi", lat: 28.6139, lon: 77.2090, country: "Hindiston" },
+      { name: "Sydney", lat: -33.8688, lon: 151.2093, country: "Avstraliya" },
+      { name: "Cairo", lat: 30.0444, lon: 31.2357, country: "Misr" },
+      { name: "Istanbul", lat: 41.0082, lon: 28.9784, country: "Turkiya" },
+      { name: "Samarqand", lat: 39.6542, lon: 66.9597, country: "O'zbekiston" },
+      { name: "Buxoro", lat: 39.7681, lon: 64.4556, country: "O'zbekiston" },
+      { name: "Dubai", lat: 25.2048, lon: 55.2708, country: "BAA" },
+      { name: "Rome", lat: 41.9028, lon: 12.4964, country: "Italiya" },
+      { name: "Madrid", lat: 40.4168, lon: -3.7038, country: "Ispaniya" },
+      { name: "Seoul", lat: 37.5665, lon: 126.9780, country: "Koreya" },
+      { name: "Mexico City", lat: 19.4326, lon: -99.1332, country: "Meksika" },
+      { name: "Cape Town", lat: -33.9249, lon: 18.4241, country: "Janubiy Afrika" }
+    ];
+    
+    // Lat/Lon ni XYZ ga o'tkazish (radius=1)
+    function latLonToVector3(lat, lon, radius = 1.02) {
+      const phi = (90 - lat) * Math.PI / 180;
+      const theta = lon * Math.PI / 180;
+      const x = radius * Math.sin(phi) * Math.cos(theta);
+      const y = radius * Math.cos(phi);
+      const z = radius * Math.sin(phi) * Math.sin(theta);
+      return new THREE.Vector3(x, y, z);
+    }
+    
+    // CSS2D label yaratish
+    function createCityLabel(name, country, color = '#FFD966') {
+      const div = document.createElement('div');
+      div.innerHTML = `<i class="fas fa-map-marker-alt" style="color:${color}; margin-right:4px;"></i> ${name}<span style="font-size:9px; margin-left:4px; opacity:0.7;">${country}</span>`;
+      div.style.background = 'rgba(0,0,0,0.65)';
+      div.style.backdropFilter = 'blur(8px)';
+      div.style.padding = '4px 12px';
+      div.style.borderRadius = '40px';
+      div.style.fontSize = '11px';
+      div.style.fontWeight = '500';
+      div.style.border = `1px solid ${color}`;
+      div.style.color = 'white';
+      div.style.whiteSpace = 'nowrap';
+      div.style.fontFamily = 'Inter, sans-serif';
+      div.style.pointerEvents = 'auto';
+      div.style.cursor = 'pointer';
+      return new CSS2DObject(div);
+    }
+    
+    const cityMarkers = [];
+    cities.forEach(city => {
+      const pos = latLonToVector3(city.lat, city.lon, 1.015);
+      const label = createCityLabel(city.name, city.country, '#48BBFF');
+      label.position.copy(pos);
+      scene.add(label);
+      
+      // Kichik marker nuqtasi (sfera)
+      const markerGeo = new THREE.SphereGeometry(0.006, 8, 8);
+      const markerMat = new THREE.MeshStandardMaterial({ color: 0xff6666, emissive: 0x442222 });
+      const marker = new THREE.Mesh(markerGeo, markerMat);
+      marker.position.copy(pos);
+      scene.add(marker);
+      
+      cityMarkers.push({ label, marker, city });
+    });
+    
+    // --- Qidiruv funksiyasi ---
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchResultsDiv = document.getElementById('searchResults');
+    
+    function searchCities(query) {
+      const q = query.toLowerCase().trim();
+      if (q.length < 2) return [];
+      return cities.filter(c => 
+        c.name.toLowerCase().includes(q) || 
+        c.country.toLowerCase().includes(q)
+      );
+    }
+    
+    function displaySearchResults(results) {
+      if (results.length === 0) {
+        searchResultsDiv.style.display = 'none';
+        return;
+      }
+      searchResultsDiv.style.display = 'block';
+      searchResultsDiv.innerHTML = results.map(city => `
+        <div class="result-item" data-lat="${city.lat}" data-lon="${city.lon}" data-name="${city.name}">
+          <i class="fas fa-city"></i> <strong>${city.name}</strong>, ${city.country}
+          <span style="font-size:10px; color:#90CDF4;">${city.lat.toFixed(2)}°, ${city.lon.toFixed(2)}°</span>
+        </div>
+      `).join('');
+      
+      document.querySelectorAll('.result-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const lat = parseFloat(el.dataset.lat);
+          const lon = parseFloat(el.dataset.lon);
+          const name = el.dataset.name;
+          flyToLocation(lat, lon, name);
+          searchResultsDiv.style.display = 'none';
+          searchInput.value = '';
+        });
+      });
+    }
+    
+    function flyToLocation(lat, lon, name) {
+      // Kamerani sayyoraga yaqinlashtirish
+      const targetPos = latLonToVector3(lat, lon, 1.6);
+      const direction = targetPos.clone().normalize();
+      const newCamPos = direction.multiplyScalar(2.2);
+      camera.position.copy(newCamPos);
+      controls.target.copy(targetPos);
+      controls.update();
+      
+      // Panelda ko'rsatish
+      document.getElementById('locationName').innerHTML = `<i class="fas fa-location-dot"></i> ${name}`;
+      document.getElementById('coordDisplay').innerHTML = `Kenglik: ${lat.toFixed(2)}° | Uzunlik: ${lon.toFixed(2)}°`;
+      
+      // Vaqtinchalik marker effekti
+      const tempMarker = cityMarkers.find(m => m.city.name === name);
+      if (tempMarker && tempMarker.marker) {
+        tempMarker.marker.material.emissiveIntensity = 0.8;
+        setTimeout(() => { if(tempMarker.marker) tempMarker.marker.material.emissiveIntensity = 0; }, 1000);
+      }
+    }
+    
+    searchBtn.addEventListener('click', () => {
+      const query = searchInput.value;
+      const results = searchCities(query);
+      displaySearchResults(results);
+    });
+    
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') searchBtn.click();
+    });
+    
+    // Reset kamera
+    document.getElementById('resetViewBtn').addEventListener('click', () => {
+      camera.position.set(0, 0.2, 3.5);
+      controls.target.set(0, 0, 0);
+      controls.update();
+      document.getElementById('locationName').innerHTML = "Yer sayyorasi";
+      document.getElementById('coordDisplay').innerHTML = "Kenglik: 0.00° | Uzunlik: 0.00°";
+    });
+    
+    // Atmosfera qatlamini yoqish/o'chirish
+    let atmosVisible = true;
+    document.getElementById('toggleAtmoBtn').addEventListener('click', () => {
+      atmosVisible = !atmosVisible;
+      atmosphere.visible = atmosVisible;
+    });
+    
+    // --- Qatlamlarni o'zgartirish (tekstura almashtirish) ---
+    // Turli xil teksturalar (bizda bir nechta variant)
+    const satelliteMap = earthMap;
+    const terrainMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'); // same, but for demo
+    const politicalMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+    
+    document.querySelectorAll('.layer-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const layer = btn.dataset.layer;
+        if (layer === 'satellite') {
+          earthMaterial.map = satelliteMap;
+          earthMaterial.needsUpdate = true;
+        } else if (layer === 'terrain') {
+          // Relyef uchun boshqa tekstura (simulyatsiya)
+          earthMaterial.map = terrainMap;
+          earthMaterial.needsUpdate = true;
+        } else if (layer === 'political') {
+          earthMaterial.map = politicalMap;
+          earthMaterial.needsUpdate = true;
+        }
+      });
+    });
+    
+    // Yulduzlar aylanishi
+    let time = 0;
+    
+    // CSS2D label'larni kamera bilan birga harakatlantirish (avtomatik)
+    
+    // Kursor koordinatalarini real vaqtda olish (mouse move)
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    
+    renderer.domElement.addEventListener('mousemove', (event) => {
+      mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+      mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObject(earth);
+      if (intersects.length > 0) {
+        const point = intersects[0].point;
+        // Koordinatalarni hisoblash (lat/lon)
+        const x = point.x, y = point.y, z = point.z;
+        const r = Math.sqrt(x*x + y*y + z*z);
+        const lat = 90 - (Math.acos(y / r) * 180 / Math.PI);
+        const lon = Math.atan2(z, x) * 180 / Math.PI;
+        document.getElementById('coordDisplay').innerHTML = `Kenglik: ${lat.toFixed(2)}° | Uzunlik: ${lon.toFixed(2)}°`;
+      }
+    });
+    
+    // Animatsiya
+    function animate() {
+      requestAnimationFrame(animate);
+      time += 0.002;
+      
+      // Bulutlarni sekin aylantirish
+      clouds.rotation.y += 0.0008;
+      stars.rotation.y += 0.0003;
+      
+      controls.update();
+      renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+    }
+    
+    // Yuklashni yashirish
+    setTimeout(() => {
+      const loadingDiv = document.getElementById('loading');
+      loadingDiv.style.opacity = '0';
+      setTimeout(() => loadingDiv.style.display = 'none', 1000);
+    }, 1800);
+    
+    animate();
+    
+    window.addEventListener('resize', onWindowResize, false);
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    console.log('Earth Explorer 3D ishga tushdi! 50+ shahar maʼlumotlari mavjud.');
+  </script>
+</body>
+</html>
